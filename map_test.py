@@ -21,6 +21,11 @@ from report import CSVReport, ExcelReport
 from config import init_config
 
 from uuid import uuid4
+from subprocess import call
+import os
+import subprocess
+import sys
+import json
 
 logging.basicConfig(level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s')
@@ -383,11 +388,14 @@ def run_map_test_dummy(data, items=None, probs=None, uniform=True, top=True,
 
 def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_event,
                  consider_non_zero_scores=cfg.testing.consider_non_zero_scores_only,
-                 num=200, K=cfg.testing.map_k, test=False, predictionio_url="http://0.0.0.0:8000"):
+                 num=20, K=cfg.testing.map_k, test=False, predictionio_url="http://0.0.0.0:8000"):
     N_TEST = 2000
     d = {}
     res_data = {}
     engine_client = predictionio.EngineClient(url=predictionio_url)
+
+    if (not users is None):
+        users = set(users)
 
     for rec in data:
         if rec.event == primaryEvent:
@@ -405,15 +413,33 @@ def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_
     ground_truth = []
     user_items_cnt = 0.0
     users_cnt = 0
-    for user in tqdm(holdoutUsers):
-        q = {
-            "user": user,
-            "eventNames": eventNames,
-            "num": num,
-        }
-
+ 
+    FNULL = open(os.devnull, 'w')
+    with open("batchpredict-input.json","w") as queryFile:
+        for user in tqdm(holdoutUsers):
+            q = {
+                "user": user.encode('utf-8'),
+                "eventNames": eventNames,
+                "num": num,
+            }
+            qString = str(json.dumps(q)).strip("\n").replace("'", "\"") + "\n"
+#            print("QUERY" + qString)
+#            sys.stdout.flush()
+            queryFile.write(qString)
+#    queryFile.close()
+    call(["pio", "batchpredict", "-- --master local[*] --driver-memory 28g"], stdout=FNULL, stderr=subprocess.STDOUT)
+    #call("pio batchpredict", shell=True)
+    FNULL.close()
+    with open("batchpredict-output.json","r") as responsesFile:
+        lines = responsesFile.read().splitlines()
+ 
+    for line in lines:
         try:
-            res = engine_client.send_query(q)
+            fullRes = json.loads(line)
+            res = fullRes['prediction']
+#            print("RES " + str(fullRes))
+#            sys.stdout.flush()
+            user = fullRes['query']['user']
             # Sort by score then by item name
             tuples = sorted([(r["score"], r["item"]) for r in res["itemScores"]], reverse=True)
             scores = [score for score, item in tuples]
@@ -441,7 +467,7 @@ def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_
 
 
 def get_nonzero(r_data):
-    users = [user for user, res_data in r_data.items() if res_data['scores'][0] != 0.0]
+    users = [user for user, res_data in r_data.items() if res_data['scores'][0] != 0.0 or not cfg.testing.consider_non_zero_scores_only]
     return users
 
 
