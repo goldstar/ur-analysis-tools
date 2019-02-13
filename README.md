@@ -6,12 +6,12 @@ The steps to execute all workflow are:
 
  1. **Verify the PIO EventServer is running** `pio status` will do this.
  2. **Export Data** We assume that the data exists in the EventServer or in HDFS. Export the data to the location specified in the `config.json` file.  
- 3. **Split** the data using the `map_test split` directive. It is often desirable to use an existing data split so the split step can be omitted.
+ 3. **Split** the data using the `map_test split ...` directive. It is often desirable to use an existing data split so the split step can be omitted.
  4. **Train and Deploy** To do this 3 PIO workflow steps need to be taken. These must be executed inside the directory of the UR version we are testing.
     1. **`pio build`** This will create the Universal Recommender code and register the algorithm parameters
     2. **`pio train`** This will create a model with the UR from the `engine.json` parameters. There are parameters in engine.json that are passed to Spark in the training process that are system and data dependent so make sure train completes correctly before moving on. Using these tools usually happens after the bootstrap dataset has be3en successfully trained so the split is made on the dataset.
     3. **`pio deploy`** This will create a running PIO PredictionServer that responds to UR queries based on the training split of the dataset.
- 5. **Analyze** Same as Alexey's #3   
+ 5. **Analyze** the model using `map_test test ...`   
 
 # Setup
 
