@@ -13,20 +13,27 @@ The steps to execute all workflow are:
     3. **`pio deploy`** This will create a running PIO PredictionServer that responds to UR queries based on the training split of the dataset.
  5. **Analyze** the model using `map_test test ...`   
 
-# Setup
+# Setup 
+
+##Requirements
+
+ - PredictionI0 v0.11+
+ - UR v0.7.3+
+ - Python 3+
+ - Spark as recommended by you versions of PIO and UR
 
 Install Spark, PredictionIO v0.11.0 or greater, and the Universal Recommender v0.7.3 or greater. Make sure `pio status` completes with no errors and the integration-test for the UR runs correctly.
 
  1. Install Python and check the version
 
- 	`python --v`
+ 	`python3 --v`
 
- 	if the version is less than 2.7.9 upgrade to the most recent stable version of python using systems package management tools like `apt-get` for Ubuntu linux or `brew` for the macOS. This tool has not been tested with Python 3 so stick with Python 2.7
+ 	if the version is less than 3.x upgrade to the most recent stable version of python3 using systems package management tools like `apt-get` for Ubuntu linux or `brew` for the macOS. This tool has been tested minimally with python3 and does require it. Leave an issue if you find one.
 
- 2. Install Python libraries using the Python package manager found [here](https://pip.pypa.io/en/stable/installing/)
+ 2. Install Python libraries using the Python package manager found [here](https://pip.pypa.io/en/stable/installing/) Note that if you have python3 running you may alrady have pip3, `which pip3` will check. If you don't have it installed the above link will work with python3 so install it first.
 
  	```
- 	sudo pip install numpy scipy pandas ml_metrics predictionio tqdm click openpyxl
+ 	sudo pip3 install numpy scipy pandas ml_metrics predictionio tqdm click openpyxl
  	```
 
  3. Setup Spark and Pyspark paths in `.bashrc` (linux) or `.bash_profile` macOS.
