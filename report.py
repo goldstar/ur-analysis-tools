@@ -1,3 +1,4 @@
+import logging
 import os.path
 import os
 import csv
@@ -5,6 +6,12 @@ import csv
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 
+'''logging.basicConfig(filename="logs_report.txt",
+                            filemode='a',
+                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+'''
 
 def get_workbook(file_path):
     if os.path.isfile(file_path):
@@ -108,6 +115,7 @@ class ExcelReport:
 
     def report(self, column_names, columns, title=None, bold_first_column=True,
                selected_rows=None, selected_columns=None, cfg=None):
+        logging.debug("In report for excel")
         fill_table_worksheet(self.ws, column_names, columns, title, bold_first_column,
                              selected_rows, selected_columns, cfg)
 
@@ -115,7 +123,8 @@ class ExcelReport:
         dump_config(self.ws, cfg)
 
     def finish_sheet(self):
-        pass
+        #pass
+        self.wb.save(self.file_name)
 
     def finish_document(self):
         self.wb.save(self.file_name)
@@ -135,9 +144,26 @@ class CSVReport:
                 sheet_name + '-' + str(self.uuid) + '.csv')
         else:
             fine_name = os.path.join(self.dir_name, sheet_name + '.csv')
-        self.fd = open(fine_name, 'wb')
+        #self.fd = open(fine_name, 'wb')
+        logging.debug("filename that we are opening and writing as a csv: %s", fine_name)
+        print("fine_name: ", fine_name)
+        
+        self.fd = open(fine_name, 'w')
+        logging.debug("self.fd: %s", self.fd)
+        print("self.fd: ", self.fd)
+        '''
+        filey = open("report_test.txt", "a")
+        filey.write("filename that we are opening and writing as a csv:\n")
+        filey.write(fine_name)
+        filey.write("self.fd: \n")
+        filey.write(self.fd)
+        filey.write("\nEND")
+        filey.close()'''
 
     def report(self, column_names, columns, cfg=None, **kwargs):
+        logging.debug("In report for CSV")
+        logging.debug("column_names passed to csv report: %s", column_names)
+        logging.debug("columns passed to csv report: %s", columns)
         formated_columns = []
         for column in columns:
             formated_column = []
@@ -150,7 +176,7 @@ class CSVReport:
                 else:
                     formated_column.append(value)
             formated_columns.append(formated_column)
-
+        logging.debug("report column_names: %s", column_names)
         writer = csv.DictWriter(self.fd, fieldnames=column_names)
         writer.writeheader()
 
@@ -158,7 +184,7 @@ class CSVReport:
             row = dict([(column_names[j], formated_columns[j][i])
                 for j in range(len(formated_columns))])
             writer.writerow(row)
-
+        logging.debug("formated_columns (the scores to go into csv report): %s ", formated_columns)
         self.report_config(cfg)
 
 
