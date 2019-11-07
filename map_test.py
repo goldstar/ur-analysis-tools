@@ -393,16 +393,14 @@ def run_map_test_dummy(data, items=None, probs=None, uniform=True, top=True,
     return [metrics.mapk(ground_truth, prediction, k) for k in range(1, K + 1)]
 
 
+
 def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_event,
                  consider_non_zero_scores=cfg.testing.consider_non_zero_scores_only,
-                 num=20, K=cfg.testing.map_k, test=False, predictionio_url="http://0.0.0.0:8000"):
+                 num=200, K=cfg.testing.map_k, test=False, predictionio_url="http://0.0.0.0:8000"):
     N_TEST = 2000
     d = {}
     res_data = {}
     engine_client = predictionio.EngineClient(url=predictionio_url)
-
-    if (not users is None):
-        users = set(users)
 
     for rec in data:
         if rec.event == primaryEvent:
@@ -420,38 +418,15 @@ def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_
     ground_truth = []
     user_items_cnt = 0.0
     users_cnt = 0
- 
-    FNULL = open(os.devnull, 'w')
-    with open("batchpredict-input.json","w") as queryFile:
-        for user in tqdm(holdoutUsers):
-            q = {
-                #"user": user.encode('utf-8'),
-                "user": user,
-                "eventNames": eventNames,
-                "num": num,
-            }
-            qString = str(json.dumps(q)).strip("\n").replace("'", "\"") + "\n"
-#            print("QUERY" + qString)
-#            sys.stdout.flush()
-            queryFile.write(qString)
-#    queryFile.close()
-    #call(["pio", "batchpredict", "--output ./batchpredict-output.json", "-- --master local[*] --driver-memory 50g"], stdout=FNULL, stderr=subprocess.STDOUT)
-    batchpred_out, stderr = subprocess.Popen(["pio", "batchpredict", "--output ./batchpredict-output.json","-- --master local[*] --driver-memory 50g"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-    logging.debug("batchpred_out: %s", batchpred_out)
-    logging.debug("stderr from pio batchpredict: %s", stderr)
-    #call("pio batchpredict", shell=True)
-    FNULL.close()
-    with open("batchpredict-output.json","r") as responsesFile:
-        lines = responsesFile.read().splitlines()
-    logging.debug("After batchpredict-output.json, before itterating over lines. lines: %s", lines) 
-    for line in lines:
-        logging.debug("Itteratting over lines in batchpredict-output.json")
+    for user in tqdm(holdoutUsers):
+        q = {
+            "user": user,
+            "eventNames": eventNames,
+            "num": num,
+        }
+
         try:
-            fullRes = json.loads(line)
-            res = fullRes['prediction']
-#            print("RES " + str(fullRes))
-#            sys.stdout.flush()
-            user = fullRes['query']['user']
+            res = engine_client.send_query(q)
             # Sort by score then by item name
             tuples = sorted([(r["score"], r["item"]) for r in res["itemScores"]], reverse=True)
             scores = [score for score, item in tuples]
