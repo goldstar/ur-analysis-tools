@@ -19,8 +19,8 @@ def init_config(config_file):
 
     with open(config_dict['engine_config']) as engine_input:
         engine_config_dict = json.load(engine_input)
-
-    config_dict['testing']['events'] = engine_config_dict['algorithms'][0]['params']['eventNames']
+    print("eventNames: ", engine_config_dict['algorithms'][0]['params']['rankings'][0]['eventNames'])
+    config_dict['testing']['events'] = engine_config_dict['algorithms'][0]['params']['rankings'][0]['eventNames']
     config_dict['testing']['primary_event'] = config_dict['testing']['events'][0]
     config_dict['testing']['non_zero_users_file'] += "." + config_dict['splitting']['version']
 

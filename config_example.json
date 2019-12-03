@@ -23,7 +23,7 @@
     "non_zero_users_file": "./non_zero_users.dat",
     "consider_non_zero_scores_only": true,
     "custom_combos": {
-      "event_groups": [["show-hold"], ["mm-feedback-like"], ["mm-feedback-dislike"], ["offer-hold"]]
+      "event_groups": [["mm-feedback-like"], ["mm-feedback-dislike"], ["show-hold"], ["offer-hold"]]
     }
   },
 
