@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3.5
 
-import logging
+# import logging
 
 import click
 
@@ -25,11 +25,11 @@ import subprocess
 import sys
 import json
 
-logging.basicConfig(filename="logs.txt",
-                            filemode='a',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.DEBUG)
+# logging.basicConfig(filename="logs.txt",
+#                             filemode='a',
+#                             format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+#                             datefmt='%H:%M:%S',
+#                             level=logging.DEBUG)
 
 #logging.basicConfig(level=logging.DEBUG,
 #    format='%(asctime)s %(levelname)s %(message)s')
@@ -38,7 +38,7 @@ logging.basicConfig(filename="logs.txt",
 #logging.setLevel(level=logging.DEBUG)
 
 cfg = init_config('config.json')
-logging.debug("Application was launched with config: %s" % str(cfg.init_dict))
+# logging.debug("Application was launched with config: %s" % str(cfg.init_dict))
 
 
 def get_split_date(df, split_event, train_ratio=0.8):
@@ -96,7 +96,7 @@ def mk_intersection_matrix(by_rows, columns_for_matrix,
 @click.option('--intersections', is_flag=True)
 @click.option('--csv_report', is_flag=True)
 def split(intersections, csv_report):
-    logging.info('Splitting started')
+    # logging.info('Splitting started')
 
     if csv_report:
         if cfg.reporting.use_uuid:
@@ -107,21 +107,21 @@ def split(intersections, csv_report):
     else:
         reporter = ExcelReport(cfg.reporting.file)
 
-    logging.info('Spark initialization')
+    # logging.info('Spark initialization')
     SparkContext.setSystemProperty('spark.executor.memory', '50g')
     SparkContext.setSystemProperty('spark.driver.memory', '50g')
     sc = SparkContext(cfg.spark.master, 'map_test: split')
     print("Memory info: ", sc._conf.getAll())
     sqlContext = SQLContext(sc)
 
-    logging.info('Source file reading')
+    # logging.info('Source file reading')
     df = sqlContext.read.json(cfg.splitting.source_file)
     df = df.withColumn("Date", F.from_utc_timestamp("eventTime", "UTC"))
 
     users_with_event_count = df.groupBy(F.col("entityId").alias("user")).count()
 
 
-    logging.info('Filter users with small number of events')
+    # logging.info('Filter users with small number of events')
     min_events = 10
     users_with_few_events = (users_with_event_count
                              .filter("count < %d" % (min_events))
@@ -132,7 +132,7 @@ def split(intersections, csv_report):
     df1 = ndf.filter("user_with_few_events is NULL").drop("user_with_few_events")
 
 
-    logging.info('Split data into train and test')
+    # logging.info('Split data into train and test')
     train_df, test_df = split_data(df)
     train_df.write.json(cfg.splitting.train_file, mode="overwrite")
     test_df.write.json(cfg.splitting.test_file, mode="overwrite")
@@ -142,7 +142,7 @@ def split(intersections, csv_report):
     test_df = test_df.select("entityId", "event", "targetEntityId").cache()
 
 
-    logging.info('Calculation of different stat metrics of datasets')
+    # logging.info('Calculation of different stat metrics of datasets')
     events_by_type = (df
                       .groupBy("event")
                       .count()
@@ -217,7 +217,7 @@ def split(intersections, csv_report):
                                   .toPandas()
                                   .set_index("event"))
 
-    logging.info('Calculate total counts')
+    # logging.info('Calculate total counts')
     events = df.count()
     events_train = train_df.count()
     events_test = test_df.count()
@@ -250,7 +250,7 @@ def split(intersections, csv_report):
     info_df.insert(4, 'events per user', info_df.ix[:, 1] / info_df.ix[:, 2])
     info_df.insert(5, 'events per item', info_df.ix[:, 1] / info_df.ix[:, 3])
 
-    logging.info('Create event stat worksheet')
+    # logging.info('Create event stat worksheet')
     reporter.start_new_sheet('Events_stat')
     reporter.report(
         ['event', 'event count', 'unique users', 'unique items',
@@ -264,12 +264,12 @@ def split(intersections, csv_report):
     reporter.finish_sheet()
 
     if intersections:
-        logging.info('Start intersections calculation')
+        # logging.info('Start intersections calculation')
 
         reporter.start_new_sheet('Intersections')
 
         columns_for_matrix = cfg.testing.events
-        logging.info('Process train / train user intersection')
+        # logging.info('Process train / train user intersection')
         train_train_users = (
             train_df
             .select(F.col("entityId").alias("user"), F.col("event").alias("event_left"))
@@ -286,7 +286,7 @@ def split(intersections, csv_report):
             [trtru.index.tolist()] + [column for _, column in trtru.iteritems()],
             title='Train / train user intersection')
 
-        logging.info('Process train / test user intersection')
+        # logging.info('Process train / test user intersection')
         train_test_users = (
             train_df
             .select(F.col("entityId").alias("user"), F.col("event").alias("event_left"))
@@ -304,7 +304,7 @@ def split(intersections, csv_report):
             [trtsu.index.tolist()] + [column for _, column in trtsu.iteritems()],
             title='Train / test user intersection')
 
-        logging.info('Process train / train item intersection')
+        # logging.info('Process train / train item intersection')
         train_train_items = (
             train_df
             .select(F.col("targetEntityId").alias("item"), F.col("event").alias("event_left"))
@@ -322,7 +322,7 @@ def split(intersections, csv_report):
             title='Train / train item intersection'
         )
 
-        logging.info('Process train / test item intersection')
+        # logging.info('Process train / test item intersection')
         train_test_items = (
             train_df
             .select(F.col("targetEntityId").alias("item"), F.col("event").alias("event_left"))
@@ -344,7 +344,7 @@ def split(intersections, csv_report):
         reporter.report_config(cfg)
 
     reporter.finish_document()
-    logging.info('Splitting finished successfully')
+    # logging.info('Splitting finished successfully')
 
 
 def run_map_test_dummy(data, items=None, probs=None, uniform=True, top=True,
@@ -421,8 +421,8 @@ def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_
     for user in tqdm(holdoutUsers):
         q = {
             "user": user,
-            "eventNames": eventNames,
-            "num": num,
+            "eventNames": eventNames[0],
+            "num": num
         }
 
         try:
@@ -438,19 +438,56 @@ def run_map_test(data, eventNames, users=None, primaryEvent=cfg.testing.primary_
             # Consider only non-zero scores
             if consider_non_zero_scores:
                 if len(scores) > 0 and scores[0] != 0.0:
+                    with open("logs.txt", "a") as log_file:
+                        log_file.write("\n Successfully got scores")
+                        log_file.write("\n user: " + str(user))
+                        log_file.write("\n eventNames: " + str(eventNames))
+                    # logging.debug("consider_non_zero_scores, eventNames %s" % eventNames)
+                    if "mm-" in str(eventNames) or "show-hold" in str(eventNames) or "offer-hold" in str(eventNames):
+                        with open("logs.txt", "a") as log_file:
+                            log_file.write("\n One of 3 signal eventName has nonzero score" + str(eventNames))
+                            log_file.write("\n Scores were: " + str(scores))
+                            log_file.write("\n items: " + str(items))
+                        # logging.debug("mm- eventName has nonzero score %s" % eventNames)
+                        # logging.debug("Scores were %s" % scores)
+                        # logging.debug("items: %s" % items)
                     prediction.append(items)
                     ground_truth.append(d.get(user, []))
                     user_items_cnt += len(d.get(user, []))
                     users_cnt += 1
+                else:
+                    with open("logs.txt", "a") as log_file:
+                        log_file.write("\n")
+                        log_file.write("Event not included in map@k: " + str(eventNames))
+                        log_file.write("\n Scores were: " + str(scores))
+                    # logging.debug("Consider non zero, scores were zero: ")
+                    # logging.debug("Scores were %s" % scores)
+                    # logging.debug("consider_non_zero_scores, eventNames %s" % eventNames)
             else:
                 prediction.append(items)
                 ground_truth.append(d.get(user, []))
                 user_items_cnt += len(d.get(user, []))
                 users_cnt += 1
+            with open("logs.txt", "a") as log_file:
+                log_file.write("\n End of try for qs: ")
+                log_file.write("\n user: " + str(user))
+                log_file.write("\n eventNames: " + str(eventNames[0]))
+                log_file.write("\n End of try, Scores were: " + str(scores))
+            
         except predictionio.NotFoundError:
+            # logging.debug("Error: %s " % predictionio.NotFoundError)
+            # logging.debug("Error with user: %s" % user)
             print("Error with user: %s" % user)
-    return ([metrics.mapk(ground_truth, prediction, k) for k in range(1, K + 1)],
-            res_data, user_items_cnt / (users_cnt + 0.00001))
+        except Exception as e:
+            # logging.debug("General exception: %s" % e)
+            with open("logs.txt", "a") as log_file:
+                log_file.write("\n General exception: " + str(e))
+    # logging.debug("ground_truth after user added %s: " % ground_truth)
+    # logging.debug("event_group: %s" % eventNames)
+    map_l = [metrics.mapk(ground_truth, prediction, k) for k in range(1, K + 1)], res_data, user_items_cnt / (users_cnt + 0.00001)
+    # logging.debug("Map@k calculation list: %s" % map_l)
+
+    return (map_l)
 
 
 def get_nonzero(r_data):
@@ -476,31 +513,35 @@ def test(csv_report,
          custom_combos_test,
          non_zero_users_from_file):
 
-    logging.info('Testing started')
+    # logging.info('Testing started')
 
     if csv_report:
         if cfg.reporting.use_uuid:
             uuid = uuid4()
             reporter = CSVReport(cfg.reporting.csv_dir, uuid)
-            logging.info("Reporter is CSV uuid cs reporter")
+            # logging.info("Reporter is CSV uuid cs reporter")
         else:
             reporter = CSVReport(cfg.reporting.csv_dir, None)
     else:
         reporter = ExcelReport(cfg.reporting.file)
-    logging.debug('Reporter was: %s', reporter)
-    logging.info('Spark context initialization')
+    # logging.debug('Reporter was: %s', reporter)
+    # logging.info('Spark context initialization')
     sc = SparkContext(cfg.spark.master, 'map_test: test')
     sqlContext = SQLContext(sc)
 
-    logging.info('Test data reading')
+    # logging.info('Test data reading')
     test_df = sqlContext.read.json(cfg.splitting.test_file).select("entityId", "event", "targetEntityId").cache()
 
     test_data = test_df.filter("event = '%s'" % (cfg.testing.primary_event)).collect()
-
+    with open("td.txt", "w") as td:
+        td.write(str(len(test_data)))
+        td.write("\n " + str(test_data))
+        print("type test_data: ", type(test_data))
+    # logging.debug("test_data: %s" % test_data)
     #non_zero_users = set([r[0] for r in test_data][500:650]) # Because actually all our users have 0.0 scores -- too few data
 
     if all or dummy_test:
-        logging.info('Train data reading')
+        # logging.info('Train data reading')
 
         train_df = sqlContext.read.json(cfg.splitting.train_file).select("entityId", "event", "targetEntityId").cache()
         counts = train_df.filter("event = '%s'" % (cfg.testing.primary_event)).groupBy("targetEntityId").count().collect()
@@ -510,31 +551,31 @@ def test(csv_report,
         probs = np.array([cnt for cnt, item in sorted_rating])
         probs = 1.0 * probs / probs.sum()
 
-        logging.info('Process dummy test')
+        # logging.info('Process dummy test')
         # case 1. Random sampling from items (uniform)
         dummy_uniform_res = run_map_test_dummy(test_data, items=elements, probs=probs,
                                                uniform=True, top=False, K=cfg.testing.map_k)
-        logging.info("dummy_uniform_res: %s", dummy_uniform_res)
+        # logging.info("dummy_uniform_res: %s", dummy_uniform_res)
         # case 2. Random sampling from items (according to their distribution in training data)
         dummy_res = run_map_test_dummy(test_data, items=elements, probs=probs,
                                        uniform=False, top=False, K=cfg.testing.map_k)
-        logging.info("dummy_res: %s ", dummy_res)
+        # logging.info("dummy_res: %s ", dummy_res)
         # case 3. Top-N items from training data
         dummy_top_res = run_map_test_dummy(test_data, items=elements, probs=probs,
                                            uniform=True, top=True, K=cfg.testing.map_k)
-        logging.info("\ndummy_top_res: %s", dummy_top_res)
-        logging.info("\nCreating Dummy MAP benchmark")
+        # logging.info("\ndummy_top_res: %s", dummy_top_res)
+        # logging.info("\nCreating Dummy MAP benchmark")
         reporter.start_new_sheet('Dummy_MAP_benchmark')
-        logging.debug("Is reporter.report a function %s", reporter.report)
+        # logging.debug("Is reporter.report a function %s", reporter.report)
         reporter.report(
             ['', 'Random uniform', 'Random sampled from train', 'Top - N'],
             [[('MAP @ %d' % i) for i in range(1, len(dummy_res)+1)]] + [dummy_uniform_res, dummy_res, dummy_top_res],
             cfg=cfg
         )
-        logging.debug("Made it past important dummy report!")
+        # logging.debug("Made it past important dummy report!")
         reporter.finish_sheet()
 
-        logging.info('Process top 20 dummy test')
+        # logging.info('Process top 20 dummy test')
         scores = []
         for i in range(20):
             scores.append(run_map_test_dummy(test_data, items=elements[i:], uniform=True,
@@ -550,7 +591,7 @@ def test(csv_report,
         reporter.finish_sheet()
 
     if all or separate_test or all_but_test or primary_pairs_test or custom_combos_test:
-        logging.info('Non zero users')
+        # logging.info('Non zero users')
         if non_zero_users_from_file:
             with open(cfg.testing.non_zero_users_file) as input:
                 non_zero_users = set(input.read().split(','))
@@ -561,16 +602,16 @@ def test(csv_report,
                 output.write(','.join(non_zero_users))
 
     if all or separate_test:
-        logging.info('Process "map separate events" test')
+        # logging.info('Process "map separate events" test')
         columns = []
-        logging.info("cfg.testing: %s", cfg.testing)
-        logging.info("cfg.testing.events: %s", cfg.testing.events)
+        # logging.info("cfg.testing: %s", cfg.testing)
+        # logging.info("cfg.testing.events: %s", cfg.testing.events)
         for ev in cfg.testing.events:
             (r_scores, r_data, ipu) = run_map_test(test_data, [ev], users=non_zero_users, test=False)
             columns.append(r_scores + [len(non_zero_users)])
 
         first_column = [('MAP @ %d' % i) for i in range(1, len(columns[0]))] + ['non-zero users']
-        logging.debug("scores + [len(non_zero_users)]: %s", r_scores + [len(non_zero_users)])
+        # logging.debug("scores + [len(non_zero_users)]: %s", r_scores + [len(non_zero_users)])
         reporter.start_new_sheet('MAP_separate_events')
         reporter.report(
             ['event'] + cfg.testing.events,
@@ -581,7 +622,7 @@ def test(csv_report,
         reporter.finish_sheet()
 
     if all or all_but_test:
-        logging.info('Process "map all but..." test')
+        # logging.info('Process "map all but..." test')
         events_scores = []
         for ev in cfg.testing.events:
             evs = list(cfg.testing.events)
@@ -604,7 +645,7 @@ def test(csv_report,
         reporter.finish_sheet()
 
     if all or primary_pairs_test:
-        logging.info('Process "map pairs with primary" test')
+        # logging.info('Process "map pairs with primary" test')
         columns = []
         events_without_primary = [event for event in cfg.testing.events if event != cfg.testing.primary_event]
         for event in events_without_primary:
@@ -623,32 +664,32 @@ def test(csv_report,
         reporter.finish_sheet()
 
     if all or custom_combos_test:
-        logging.info('Process "custom combos" test')
+        # logging.info('Process "custom combos" test')
         columns = []
-        logging.debug("cfg.testing.custom_combos.event_groups: %s", cfg.testing.custom_combos.event_groups)
+        # logging.debug("cfg.testing.custom_combos.event_groups: %s", cfg.testing.custom_combos.event_groups)
         for event_group in cfg.testing.custom_combos.event_groups:
             if len(event_group) == 2 and cfg.testing.primary_event in event_group and primary_pairs_test:
-                logging.warn("Report for group %s already generated in 'MAP pairs with primary'" % str(event_group))
+                # logging.warn("Report for group %s already generated in 'MAP pairs with primary'" % str(event_group))
                 continue
 
             if len(event_group) == 1 and separate_test:
-                logging.warn("Report for group %s already generated in 'MAP separate events'" % str(event_group))
+                # logging.warn("Report for group %s already generated in 'MAP separate events'" % str(event_group))
                 continue
 
             if len(event_group) >= len(cfg.testing.events) - 1 and all_but_test:
-                logging.warn("Report for group %s already generated in 'All but...'" % str(event_group))
+                # logging.warn("Report for group %s already generated in 'All but...'" % str(event_group))
                 continue
 
             (r_scores, r_data, ipu) = run_map_test(test_data, event_group,
                                                    users=non_zero_users, test=False)
             columns.append(r_scores + [len(non_zero_users)])
-            logging.debug("r_scores for custom signals: %s", r_scores)
-            logging.debug("r_scores for custom signals. r_scores + [len(non_zero_users)] %s", r_scores + [len(non_zero_users)])
+            # logging.debug("r_scores for custom signals: %s", r_scores)
+            # logging.debug("r_scores for custom signals. r_scores + [len(non_zero_users)] %s", r_scores + [len(non_zero_users)])
 
         first_column = [('MAP @ %d' % i) for i in range(1, len(columns[0]))] + ['non-zero users']
-        logging.debug("first_column for custom signals %s", first_column)
+        # logging.debug("first_column for custom signals %s", first_column)
         reporter.start_new_sheet('Custom_combos')
-        logging.info("Report custom_combos")
+        # logging.info("Report custom_combos")
         reporter.report(
             ['event'] + [str([s.encode('utf-8') for s in group]) for group in cfg.testing.custom_combos.event_groups],
             [first_column] + columns,
@@ -657,7 +698,7 @@ def test(csv_report,
         reporter.finish_sheet()
 
     reporter.finish_document()
-    logging.info('Testing finished successfully')
+    # logging.info('Testing finished successfully')
 
 # root group
 @click.group()
